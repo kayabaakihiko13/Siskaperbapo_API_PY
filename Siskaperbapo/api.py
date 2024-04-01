@@ -1,4 +1,5 @@
 from datetime import datetime
+import time
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -38,23 +39,47 @@ class CommuditiyEastJava(object):
     def see_commodity_list(self):
         return self.__get_commodity_list()
 
-    def get_price_cities(self):
+    def get_price_cities(self, komoditas_text: str, tanggal: str):
         try:
+            # Set tanggal menggunakan JavaScript karena elemen bersifat readonly
+            self.driver.execute_script(
+                "arguments[0].value = arguments[1];",
+                self.driver.find_element(By.ID, "tanggal"),
+                tanggal,
+            )
+
+            # Pilih komoditas
+            select_element = self.driver.find_element(By.ID, "komoditas")
+            select_element.click()
+            option_element = self.driver.find_element(
+                By.XPATH, f"//option[text()='{komoditas_text}']"
+            )
+            option_element.click()
+
+            # Klik refresh
+            refresh_button = self.driver.find_element(By.ID, "refresh")
+            refresh_button.click()
+
+            # Tunggu beberapa saat untuk proses refresh
+            time.sleep(2)
+
+            # Dapatkan harga kota setelah refresh
             table_element = self.driver.find_element(By.ID, "datatbl")
             rows = table_element.find_elements(By.TAG_NAME, "tr")
             data = []
-            for row in rows:
+            for row in rows[1:]:  # Mulai dari indeks 1 untuk melewati baris header
                 columns = row.find_elements(By.TAG_NAME, "td")
                 if len(columns) == 2:
                     kabupaten_kota = columns[0].text.strip()
                     harga_mean = columns[1].text.strip()
                     data.append(
-                        {"Kabupaten/Kota": kabupaten_kota, "Harga Mean": harga_mean}
+                        {
+                            "Tanggal": tanggal,
+                            "Kabupaten/Kota": kabupaten_kota,
+                            "Harga Mean": harga_mean,
+                        }
                     )
-
-            # Print or return the data
-            for item in data:
-                print(item)
+            return data
         finally:
             self.driver.quit()
 
@@ -92,11 +117,13 @@ class CommuditiyEastJava(object):
 
 if __name__ == "__main__":
     east_java = CommuditiyEastJava()
+    price_cities = east_java.get_price_cities("Beras Medium / kg", "2024-04-01")
+    print(price_cities)
     # options_list = east_java.see_options()
     # commodity_list = east_java.see_commodity_list()
     # print("Options:", options_list)
     # print("Commodity:", commodity_list)
 
     # Example usage of get_data method
-    data = east_java.get_price_province("2024-04-01")
-    print("Data:", data)
+    # data = east_java.get_price_province("2024-04-01")
+    # print("Data:", data)
