@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 import time
-from typing import Any, List
 from bs4 import BeautifulSoup
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import StaleElementReferenceException
 
 
 class CommuditiyEastJava(object):
@@ -42,49 +42,71 @@ class CommuditiyEastJava(object):
         return self.__get_commodity_list()
 
     def get_price_cities(
-        self, komoditas_text: str, tanggal: str
-    ) -> List[dict[str, Any]]:
+        self, komoditas_text: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
         try:
-            # Set tanggal menggunakan JavaScript karena elemen bersifat readonly
-            self.driver.execute_script(
-                "arguments[0].value = arguments[1];",
-                self.driver.find_element(By.ID, "tanggal"),
-                tanggal,
-            )
-
-            # Pilih komoditas
-            select_element = self.driver.find_element(By.ID, "komoditas")
-            select_element.click()
-            option_element = self.driver.find_element(
-                By.XPATH, f"//option[text()='{komoditas_text}']"
-            )
-            option_element.click()
-
-            # Klik refresh
-            refresh_button = self.driver.find_element(By.ID, "refresh")
-            refresh_button.click()
-
-            # Tunggu beberapa saat untuk proses refresh
-            time.sleep(2)
-
-            # Dapatkan harga kota setelah refresh
-            table_element = self.driver.find_element(By.ID, "datatbl")
-            rows = table_element.find_elements(By.TAG_NAME, "tr")
+            # Initialize the list to store the data
             data = []
-            for row in rows[1:]:  # Mulai dari indeks 1 untuk melewati baris header
-                columns = row.find_elements(By.TAG_NAME, "td")
-                if len(columns) == 2:
-                    kabupaten_kota = columns[0].text.strip()
-                    # remove rupiah cursh from price
-                    harga_mean = columns[1].text.strip().replace("Rp", "")
-                    data.append(
-                        {
-                            "Tanggal": tanggal,
-                            "Kabupaten/Kota": kabupaten_kota,
-                            "Harga Mean": float(harga_mean),
-                        }
+
+            # Iterate over the date range from start_date to end_date
+            start_date_parsed = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_parsed = datetime.strptime(end_date, "%Y-%m-%d")
+            current_date = start_date_parsed
+            while current_date <= end_date_parsed:
+                # Convert current date to string format
+                tanggal = current_date.strftime("%Y-%m-%d")
+
+                try:
+                    # Set tanggal menggunakan JavaScript karena elemen bersifat readonly
+                    self.driver.execute_script(
+                        "arguments[0].value = arguments[1];",
+                        self.driver.find_element(By.ID, "tanggal"),
+                        tanggal,
                     )
-            return data
+
+                    # Pilih komoditas
+                    select_element = self.driver.find_element(By.ID, "komoditas")
+                    select_element.click()
+                    option_element = self.driver.find_element(
+                        By.XPATH, f"//option[text()='{komoditas_text}']"
+                    )
+                    option_element.click()
+
+                    # Klik refresh
+                    refresh_button = self.driver.find_element(By.ID, "refresh")
+                    refresh_button.click()
+
+                    # Tunggu beberapa saat untuk proses refresh
+                    time.sleep(2)
+
+                    # Dapatkan harga kota setelah refresh
+                    table_element = self.driver.find_element(By.ID, "datatbl")
+                    rows = table_element.find_elements(By.TAG_NAME, "tr")
+                    for row in rows[
+                        1:
+                    ]:  # Mulai dari indeks 1 untuk melewati baris header
+                        columns = row.find_elements(By.TAG_NAME, "td")
+                        if len(columns) == 2:
+                            kabupaten_kota = columns[0].text.strip()
+                            # remove rupiah cursh from price
+                            harga_mean = columns[1].text.strip().replace("Rp", "")
+                            data.append(
+                                {
+                                    "Tanggal": tanggal,
+                                    "Kabupaten/Kota": kabupaten_kota,
+                                    "Harga Mean": float(harga_mean),
+                                }
+                            )
+
+                except StaleElementReferenceException:
+                    # Handle stale element reference by retrying the operation
+                    continue
+
+                # Move to the next date
+                current_date += timedelta(days=1)
+
+            return pd.DataFrame(data)
+
         finally:
             self.driver.quit()
 
@@ -137,7 +159,9 @@ class CommuditiyEastJava(object):
 
 if __name__ == "__main__":
     east_java = CommuditiyEastJava()
-    price_cities = east_java.get_price_cities("Beras Medium / kg", "2024-04-01")
+    price_cities = east_java.get_price_cities(
+        "Beras Medium / kg", "2024-03-31", "2024-04-01"
+    )
     print(price_cities)
     # options_list = east_java.see_options()
     # commodity_list = east_java.see_commodity_list()
