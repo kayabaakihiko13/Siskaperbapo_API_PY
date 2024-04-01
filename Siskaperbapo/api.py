@@ -1,6 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
+from typing import Any, List
 from bs4 import BeautifulSoup
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
@@ -39,7 +41,9 @@ class CommuditiyEastJava(object):
     def see_commodity_list(self):
         return self.__get_commodity_list()
 
-    def get_price_cities(self, komoditas_text: str, tanggal: str):
+    def get_price_cities(
+        self, komoditas_text: str, tanggal: str
+    ) -> List[dict[str, Any]]:
         try:
             # Set tanggal menggunakan JavaScript karena elemen bersifat readonly
             self.driver.execute_script(
@@ -71,46 +75,62 @@ class CommuditiyEastJava(object):
                 columns = row.find_elements(By.TAG_NAME, "td")
                 if len(columns) == 2:
                     kabupaten_kota = columns[0].text.strip()
-                    harga_mean = columns[1].text.strip()
+                    # remove rupiah cursh from price
+                    harga_mean = columns[1].text.strip().replace("Rp", "")
                     data.append(
                         {
                             "Tanggal": tanggal,
                             "Kabupaten/Kota": kabupaten_kota,
-                            "Harga Mean": harga_mean,
+                            "Harga Mean": float(harga_mean),
                         }
                     )
             return data
         finally:
             self.driver.quit()
 
-    def get_price_province(self, tanggal: str):
+    def get_price_province(self, start_date: str, end_date: str) -> pd.DataFrame:
         try:
-            table_element = self.driver.find_element(
-                By.CSS_SELECTOR, "div#harga table.table-bordered"
-            )
-            tanggal_parsed = datetime.strptime(tanggal, "%Y-%m-%d")
             data = []
-            rows = table_element.find_elements(By.TAG_NAME, "tr")[1:]
-            for row in rows:
-                columns = row.find_elements(By.TAG_NAME, "td")
-                if len(columns) == 4:
-                    no = columns[0].text.strip()
-                    nama_bahan_pokok = columns[1].text.strip()
-                    satuan = columns[2].text.strip()
-                    harga = columns[3].text.strip().split()[0]
-                    data.append(
-                        {
-                            "No": no,
-                            "Nama Bahan Pokok": nama_bahan_pokok,
-                            "Satuan": satuan,
-                            "Harga": harga,
-                            "Tanggal": tanggal_parsed,
-                        }
-                    )
-            return data
+            start_date_parsed = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_parsed = datetime.strptime(end_date, "%Y-%m-%d")
+
+            # Loop dari start_date sampai end_date
+            current_date = start_date_parsed
+            while current_date <= end_date_parsed:
+                # Ubah current_date menjadi string format "%Y-%m-%d"
+                current_date_str = current_date.strftime("%Y-%m-%d")
+
+                # Ambil data harga untuk current_date
+                table_element = self.driver.find_element(
+                    By.CSS_SELECTOR, "div#harga table.table-bordered"
+                )
+                rows = table_element.find_elements(By.TAG_NAME, "tr")[1:]
+                for row in rows:
+                    columns = row.find_elements(By.TAG_NAME, "td")
+                    if len(columns) == 4:
+                        no = columns[0].text.strip()
+                        nama_bahan_pokok = columns[1].text.strip()
+                        satuan = columns[2].text.strip()
+                        harga = columns[3].text.strip().split()[0]
+                        data.append(
+                            {
+                                "No": no,
+                                "Nama Bahan Pokok": nama_bahan_pokok,
+                                "Satuan": satuan,
+                                "Harga": float(harga),
+                                "Tanggal": current_date_str,
+                            }
+                        )
+
+                # Tambahkan 1 hari ke current_date untuk iterasi selanjutnya
+                current_date += timedelta(days=1)
+
+            return pd.DataFrame(data)
+
         except Exception as e:
             print("An error occurred:", e)
             return None
+
         finally:
             self.driver.quit()
 
@@ -125,5 +145,5 @@ if __name__ == "__main__":
     # print("Commodity:", commodity_list)
 
     # Example usage of get_data method
-    # data = east_java.get_price_province("2024-04-01")
+    # data = east_java.get_price_province("2024-03-29","2024-04-01")
     # print("Data:", data)
