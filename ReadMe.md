@@ -19,7 +19,7 @@ Siskaperbapo Scraper mengumpulkan data harga komuditas yang ada di jawa timur da
 
 1. Instalasi Paket Python dapat dilakukan dengan   perintah berikut:
     ```sh
-    pip install https://github.com/kayabaakihiko13/Siskaperbapo_API_PY.git
+    pip install git+https://github.com/kayabaakihiko13/Siskaperbapo_API_PY.git
     ```
 
 2. lalu buka website [SiskaPerbapo](https://siskaperbapo.jatimprov.go.id/)
