@@ -1,5 +1,10 @@
 # Siskaperbapo Scaper
 
+<div style="text-align:center;">
+    <img src="doc/image/logo_pakage.png" alt="Logo Paket" width="500" height="350">
+</div>
+
+
 Sikaperbapo ini merupakan sistem informasi ketersediaan dan perkembangan
 Harga Bahan pokok di jawa timur
 
@@ -27,8 +32,9 @@ tampilan page websitenya seperti ini
 from Siskaperbapo.api import CommuditiyEastJava
 east_java = CommuditiyEastJava()
 # mengetahui harga dari rentang waktu di tentukan sesuai kebutuhan
-east_java.get_price_province("2024-03-29","2024-04-01")
+print(east_java.get_price_province("2024-03-29","2024-04-01"))
 ```
+untuk lengkapnya bisa di lihat [disini](example)
 
 ## Berkontribusi
 Kami menyambut kontribusi dari komunitas untuk meningkatkan Siskaperbapo Scraper. Jika Anda ingin berkontribusi, silakan ikuti langkah-langkah berikut:
