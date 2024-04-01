@@ -20,7 +20,7 @@ Siskaperbapo Scraper mengumpulkan data harga komuditas yang ada di jawa timur da
 2. lalu buka website [SiskaPerbapo](https://siskaperbapo.jatimprov.go.id/)
 
 tampilan page websitenya seperti ini
-![image](doc\image\page_website.png)
+![image](doc/image/page_website.png)
 
 3. kalau untuk mengetahui harga keselurahan bahan pokok di jawa timur cukup tinggal
 ```py

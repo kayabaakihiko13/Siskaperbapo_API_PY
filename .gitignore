@@ -1,3 +1,6 @@
 node_modules/
 .ruff_cache/
 .mypy_cache/
+build/
+Siskaperbapo.egg-info/
+Siskaperbapo/__pycache__
