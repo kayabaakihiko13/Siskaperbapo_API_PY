@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import time
+from typing import Any
 from bs4 import BeautifulSoup
 import pandas as pd
 from selenium import webdriver
@@ -17,7 +18,7 @@ class CommuditiyEastJava(object):
         self.html = self.driver.page_source
         self.soup = BeautifulSoup(self.html, "html.parser")
 
-    def __get_options(self) -> list | None:
+    def __get_options(self) -> list[Any] | None:
         # parsing webpage using bs4
         if city_selected := self.soup.find("select", {"id": "kabkota"}):
             city_options = city_selected.find_all("option")
